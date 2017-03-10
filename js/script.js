@@ -18,13 +18,17 @@ $(document).ready(function() {
         $("td").css("visibility", "visible");
     });
 
+    //Инициализируем игру при первом запуске
+    init();
     //Если нажали на какую-то ячейку
     $("td").click(function() {
         move(this, huPlayer, huCo);
     });
 });
 
-var board = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+//Глобальные переменные
+var boardSize = 3;
+var board = [];
 var huPlayer = "P";
 var aiPlayer = "C";
 //Глубина рекурсии
@@ -33,11 +37,19 @@ var round = 0;
 var aiCo = "white";
 var huCo = "#333";
 
+//Создаёт игровое поле
+function init(){
+    round = 0;
+    for(var i=0; i<boardSize*boardSize; i++){
+        board[i] = i;
+    }
+}
+
 //Функция хода
 //Принимает текущий элемент доски, игрока и цвет
 function move(element, player, color) {
     //Проверяем не занята ли уже клетка
-    if (board[element.id] != "P" && board[element.id] != "C") {
+    if (board[element.id] != huPlayer && board[element.id] != aiPlayer) {
         //Увеличиваем кол-во раундов на 1
         round++;
         //Устанавливаем цвет клетки под цвет игрока
@@ -86,8 +98,7 @@ function move(element, player, color) {
 
 //Функция сброса игры
 function reset() {
-    round = 0;
-    board = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    init();
     $("td").css("background-color", "transparent");
 }
 
@@ -153,7 +164,7 @@ function avail(reboard) {
 }
 
 //Проверяет выйгрышные комбинации на поле
-function winning(board, player) {
+/*function winning(board, player) {
     if (
         (board[0] == player && board[1] == player && board[2] == player) ||
         (board[3] == player && board[4] == player && board[5] == player) ||
@@ -168,4 +179,86 @@ function winning(board, player) {
     } else {
         return false;
     }
+}*/
+
+//Проверяет выйгрышные комбинации на поле
+function winning(board, player) {
+    if (
+        horizontalWin(board,player) ||
+        verticalWin(board,player)   ||
+        diagonalWin(board,player)
+    ) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//Проверяет выйгрышные позиции по горизонтали
+function horizontalWin(board,player){
+    var findWinPos = false;
+    for(var i=0; i<boardSize;i++){
+        for(var j=0; j<boardSize; j++){
+            console.log("horizontalWin i:"+i+" j:"+j);
+            if(board[i][j] == player){
+                findWinPos = true;
+            } else {
+                findWinPos = false;
+                break;
+            }
+        }
+
+        if(findWinPos)
+            return true;
+    }
+    return false;
+}
+
+//Проверяет выйгрышные позиции по вертикали
+function verticalWin(board,player){
+    var findWinPos = false;
+    for(i=0; i<boardSize; i++){
+        for(j=i; j<boardSize; j+=boardSize){
+            if(board[i][j] == player){
+                findWinPos = true;
+            } else {
+                findWinPos = false;
+                break;
+            }
+        }
+
+        if(findWinPos)
+            return true;
+    }
+    return false;
+}
+
+//Проверяет выйгрышные позиции по диагоналям
+function diagonalWin(board,player){
+    var findWinPos = false;
+    for(var i=0; i<boardSize; i+=boardSize+1){
+        if(board[i] == player){
+            findWinPos = true;
+        } else {
+            findWinPos = false;
+            break;
+        }
+    }
+
+    if(findWinPos)
+        return true;
+
+    for(var i=boardSize-1; i<boardSize*boardSize-1; i+=boardSize-1){
+        if(board[i] == player){
+            findWinPos = true;
+        } else {
+            findWinPos = false;
+            break;
+        }
+    }
+
+    if(findWinPos)
+        return true;
+
+    return false;
 }
