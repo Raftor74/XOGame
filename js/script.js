@@ -44,6 +44,7 @@ var huCo = "#333";
 //Создаёт игровое поле
 function init(){
     round = 0;
+    iter = 0;
     for(var i=0; i<boardSize*boardSize; i++){
         board[i] = i;
     }
@@ -63,20 +64,24 @@ function move(element, player, color) {
         //Проверяем выйгрышная позиция или нет
         if (winning(board, player)) {
             setTimeout(function() {
+                console.log(iter);
                 alert("YOU WIN");
                 reset();
             }, 500);
             return;
         } else if (round > 8) {
             setTimeout(function() {
+                console.log(iter);
                 alert("TIE");
                 reset();
             }, 500);
             return;
         } else {
             round++;
-            //Находим индекс хода AI
-            var index = minimax(board, aiPlayer).index;
+            //Находим индекс хода AI c помощью Минимакса с A-B отсечением
+            var index = minimaxAB(board,-Infinity,Infinity, aiPlayer).index;
+            //Находим индекс хода AI c помощью Минимакса
+            //var index = minimax(board,aiPlayer).index;
             var selector = "#" + index;
             //Устанавливаем цвет и маркер клетки на AI
             $(selector).css("background-color", aiCo);
@@ -85,12 +90,14 @@ function move(element, player, color) {
             //Проверяем выйграли или нет
             if (winning(board, aiPlayer)) {
                 setTimeout(function() {
+                    console.log(iter);
                     alert("YOU LOSE");
                     reset();
                 }, 500);
                 return;
             } else if (round === 0) {
                 setTimeout(function() {
+                    console.log(iter);
                     alert("tie");
                     reset();
                 }, 500);
@@ -105,6 +112,88 @@ function reset() {
     init();
     $("td").css("background-color", "transparent");
 }
+
+//Минимакс функция с Alpha-Beta отсечением
+function minimaxAB(reboard,alpha,beta,player){
+    //Глубина рекурсии
+    iter++;
+    //Создаём массив пустых клеток для перемещения
+    let freeCells = avail(reboard);
+    //Проверяем на конечные состояния
+    //Если позиция конечная, то устанавливаем ей очки.
+    //+10 если выигрывает AI, -10 если выигрывает человек, 0 при патовой ситуации
+    if (winning(reboard, huPlayer)) {
+        return {
+            score: -10
+        };
+    } else if (winning(reboard, aiPlayer)) {
+        return {
+            score: 10
+        };
+    } else if (freeCells.length === 0) {
+        return {
+            score: 0
+        };
+    }
+    //Создаём массив перемещений
+    var moves = [];
+    //Проходим по всем свободным клеткам
+    for (var i = 0; i < freeCells.length; i++) {
+        //Создаем объект "перемещение"
+        var move = {};
+        //Устанавливаем ему свойство index со значением пустого поля.
+        move.index = reboard[freeCells[i]];
+        reboard[freeCells[i]] = player;
+        //Если ход игрока - запускаем Минимакс для компьютера
+        //Иначе - для человека
+        if (player == aiPlayer) {
+            var g = minimaxAB(reboard,alpha,beta,huPlayer);
+            //Сохраняем очки хода
+            alpha = Math.max(alpha,g.score);
+            move.score = alpha;
+            //А-B отсечение
+            if (beta <= alpha) {
+                reboard[freeCells[i]] = move.index;
+                moves.push(move);
+                break;
+            }
+        } else {
+            var g = minimaxAB(reboard,alpha,beta,aiPlayer);
+            beta = Math.min(beta,g.score);
+            move.score = beta;
+            //А-B отсечение
+            if (beta <= alpha) {
+                reboard[freeCells[i]] = move.index;
+                moves.push(move);
+                break;
+            }
+        }
+        reboard[freeCells[i]] = move.index;
+        moves.push(move);
+    }
+
+    //Находим лучший ход для человека и компьютера
+    var bestMove = 0;
+    if (player === aiPlayer) {
+        var bestScore = -10000;
+        for (var i = 0; i < moves.length; i++) {
+            if (moves[i].score > bestScore) {
+                bestScore = moves[i].score;
+                bestMove = i;
+            }
+        }
+    } else {
+        var bestScore = 10000;
+        for (var i = 0; i < moves.length; i++) {
+            if (moves[i].score < bestScore) {
+                bestScore = moves[i].score;
+                bestMove = i;
+            }
+        }
+    }
+    return moves[bestMove];
+}
+
 
 //Минимакс функция
 function minimax(reboard, player) {
